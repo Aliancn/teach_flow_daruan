@@ -7,7 +7,6 @@ export const instance = axios.create({
     timeout: 30000,
 });
 
-// TODO: add interceptors for auth token
 instance.interceptors.request.use(async (config) => {
     let access_token = localStorage.getItem('access_token');
     if (!access_token) { return config; }
@@ -19,9 +18,9 @@ instance.interceptors.request.use(async (config) => {
         try {
             const response = await refreshToken({ refreshToken: refresh_token });
             const data = response.data;
-            localStorage.setItem('access_token', data.data.access);
-            localStorage.setItem('refresh_token', data.data.refresh);
-            access_token = data.data.access;
+            localStorage.setItem('access_token', data.data.accessToken);
+            localStorage.setItem('refresh_token', data.data.refreshToken);
+            access_token = data.data.accessToken;
         } catch (error) {
             throw error;
         }
