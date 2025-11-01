@@ -53,16 +53,10 @@ jobs:
         name: nextjs-app
         path: .
 
-    - name: Copy files to server via SCP
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.REMOTE_HOST }}
-        username: ${{ secrets.REMOTE_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: ".next,public,package.json,package-lock.json,next.config.ts"
-        target: "${{ secrets.REMOTE_TARGET_DIR }}"
-        
-    - name: Execute deployment commands on server
+    - name: Create deployment package
+      run: tar -czf deploy.tar.gz .next public package.json package-lock.json next.config.ts
+
+    - name: Deploy to Server
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.REMOTE_HOST }}
@@ -70,10 +64,34 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         timeout: 600s
         script: |
+          mkdir -p ${{ secrets.REMOTE_TARGET_DIR }}
+                    
+    - name: Copy package to server via SCP
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "deploy.tar.gz"
+        target: "${{ secrets.REMOTE_TARGET_DIR }}"
+
+    - name: Execute deployment commands on server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
           set -e
           cd ${{ secrets.REMOTE_TARGET_DIR }}
+          echo "Unpacking deployment package..."
+          tar -xzf deploy.tar.gz
+          rm deploy.tar.gz
+          
           echo "Installing production dependencies..."
           npm install --omit=dev
+          
           echo "Restarting application with PM2..."
           pm2 restart teach_flow_daruan || pm2 start npm --name "teach_flow_daruan" -- start
+          
           echo "Deployment successful!"
