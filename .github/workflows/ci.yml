@@ -68,11 +68,12 @@ jobs:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        timeout: 600s
         script: |
           set -e
           cd ${{ secrets.REMOTE_TARGET_DIR }}
           echo "Installing production dependencies..."
-          npm install --production
+          npm install --omit=dev
           echo "Restarting application with PM2..."
           pm2 restart teach_flow_daruan || pm2 start npm --name "teach_flow_daruan" -- start
           echo "Deployment successful!"
